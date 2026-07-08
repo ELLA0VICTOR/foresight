@@ -11,10 +11,10 @@ From the repository root:
 pnpm install
 pnpm --filter @foresight/cli build
 node packages/cli/dist/index.js health
-node packages/cli/dist/index.js simulate --scenario honeypot --mode fixture
+node packages/cli/dist/index.js skill check --from <wallet> --to <target> --data <calldata> --value 0 --chain pharos --mode live
 ```
 
-The CLI and MCP server both call the same `@foresight/engine` package.
+The CLI and MCP server both call the same `@foresight/engine` package. Pharos Mainnet is the default chain for normal checks. Pharos Atlantic testnet is selected automatically for bundled proof scenarios.
 
 ## Markdown Skill
 

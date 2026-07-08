@@ -4,6 +4,7 @@ import {
   explainCalldata,
   renderDiagnosisForAgent,
   renderReportForAgent,
+  resolveNetworkConfig,
   simulate,
   type Address,
   type Hex,
@@ -14,6 +15,9 @@ export const txInputSchema = {
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   data: z.string().regex(/^0x[a-fA-F0-9]*$/),
   value: z.string().optional(),
+  chain: z.string().optional().describe("Supported chain key such as pharos, base, ethereum, polygon, bsc, arbitrum, or optimism."),
+  chainId: z.number().optional().describe("Optional EVM chain ID. Overrides the selected chain when provided."),
+  rpcUrl: z.string().url().optional().describe("Optional custom EVM RPC URL for advanced checks."),
 };
 
 export const explainInputSchema = {
@@ -30,12 +34,17 @@ export async function runSimulate(args: {
   to: string;
   data: string;
   value?: string | undefined;
+  chain?: string | undefined;
+  chainId?: number | undefined;
+  rpcUrl?: string | undefined;
 }) {
   const report = await simulate({
     from: args.from as Address,
     to: args.to as Address,
     data: args.data as Hex,
     value: args.value ?? "0",
+  }, {
+    network: resolveNetworkConfig({ chain: args.chain, chainId: args.chainId, rpcUrl: args.rpcUrl }),
   });
   return {
     text: renderReportForAgent(report),
@@ -48,6 +57,9 @@ export async function runAssessRisk(args: {
   to: string;
   data: string;
   value?: string | undefined;
+  chain?: string | undefined;
+  chainId?: number | undefined;
+  rpcUrl?: string | undefined;
 }) {
   const result = await runSimulate(args);
   return {

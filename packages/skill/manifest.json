@@ -1,11 +1,11 @@
 {
   "name": "foresight",
-  "title": "Foresight - Transaction Safety & Simulation",
+  "title": "Foresight - Pharos-first EVM Transaction Safety",
   "version": "1.0.0",
   "category": "security",
-  "network": "atlantic-testnet",
-  "chainId": 688689,
-  "format": "pharos-markdown-skill-plus-mcp",
+  "network": "pharos-mainnet-first-evm",
+  "chainId": 1672,
+  "format": "pharos-markdown-skill-plus-mcp-multichain",
   "entry": {
     "skill": "SKILL.md",
     "mcp": "../mcp/dist/index.js"
@@ -13,11 +13,11 @@
   "tools": [
     {
       "name": "foresight_simulate",
-      "description": "Simulate a Pharos transaction before signing and return the full safety report."
+      "description": "Simulate a Pharos-first EVM transaction before signing and return the full safety report."
     },
     {
       "name": "foresight_assess_risk",
-      "description": "Return verdict and risk findings only."
+      "description": "Return verdict and risk findings only for a Pharos or supported EVM transaction."
     },
     {
       "name": "foresight_explain",

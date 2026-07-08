@@ -17,11 +17,11 @@ import { CommandBlock } from "./CommandBlock";
 
 const installCommand = "corepack pnpm install && corepack pnpm -r build";
 const safeTransferCommand =
-  "corepack pnpm --filter @foresight/cli dev -- skill check --from <wallet> --to <recipient> --data 0x --value <wei> --mode live";
+  "corepack pnpm --filter @foresight/cli dev -- skill check --from <wallet> --to <recipient> --data 0x --value <wei> --chain pharos --mode live";
 const honeypotCommand = "corepack pnpm --filter @foresight/cli dev -- skill demo honeypot --live";
 const happySwapCommand = "corepack pnpm --filter @foresight/cli dev -- skill demo happy-path --live";
 const genericCheckCommand =
-  "corepack pnpm --filter @foresight/cli dev -- skill check --from <wallet> --to <contract_or_recipient> --data <calldata> --value <wei> --mode live";
+  "corepack pnpm --filter @foresight/cli dev -- skill check --from <wallet> --to <contract_or_recipient> --data <calldata> --value <wei> --chain pharos --mode live";
 const windowsMcpConfig = `{
   "mcpServers": {
     "foresight": {
@@ -44,7 +44,7 @@ const unixMcpConfig = `{
     }
   }
 }`;
-const claudePrompt = `Use the Foresight MCP tool to assess this Pharos transaction before signing.
+const claudePrompt = `Use the Foresight MCP tool to assess this transaction before signing. Chain: pharos.
 
 from: <wallet>
 to: <contract_or_recipient>
@@ -56,8 +56,8 @@ const sections = [
     id: "overview",
     group: "Introduction",
     label: "Overview",
-    title: "Pre-flight safety for Pharos agents",
-    description: "What Foresight is and the verdict it returns before signing.",
+    title: "Pharos Mainnet transaction safety",
+    description: "What Foresight checks and the verdict it returns before signing.",
   },
   {
     id: "paths",
@@ -84,8 +84,8 @@ const sections = [
     id: "cli",
     group: "Getting Started",
     label: "CLI checks",
-    title: "Run live Pharos checks from terminal",
-    description: "Manual commands for safe transfers, swaps, and honeypot refusal.",
+    title: "Run live EVM checks from terminal",
+    description: "Manual commands for Pharos Mainnet checks, Atlantic proof demos, and bonus EVM checks.",
   },
   {
     id: "mcp",
@@ -372,16 +372,16 @@ export default function TryPage() {
         </aside>
 
         <article className="min-w-0 py-10">
-          <DocSection id="overview" eyebrow="Introduction" title="Pre-flight safety for Pharos agents">
+          <DocSection id="overview" eyebrow="Introduction" title="Pharos Mainnet transaction safety">
             <Paragraph>
               Foresight is a Pharos Agent Center skill for checking transactions before an AI agent signs them. It accepts
-              the same transaction fields a wallet would sign, simulates the intent on Pharos, and returns a clear verdict:
+              the same transaction fields a wallet would sign, simulates the intent on Pharos Mainnet by default, or on another supported EVM network, and returns a clear verdict:
               <span className="text-text1"> SIGN</span>, <span className="text-text1">REVIEW</span>, or{" "}
               <span className="text-text1">DO_NOT_SIGN</span>.
             </Paragraph>
             <div className="grid gap-4 md:grid-cols-3">
-              <MiniCard title="Decode">Reads calldata and identifies known Pharos demo contracts when ABI data exists.</MiniCard>
-              <MiniCard title="Simulate">Runs live pre-flight checks through Pharos RPC without broadcasting funds.</MiniCard>
+              <MiniCard title="Decode">Reads calldata and identifies known calls when ABI data exists.</MiniCard>
+              <MiniCard title="Simulate">Runs live pre-flight checks through the selected RPC without broadcasting funds.</MiniCard>
               <MiniCard title="Decide">Returns risk score, findings, and agent-readable safety guidance.</MiniCard>
             </div>
           </DocSection>
@@ -400,7 +400,7 @@ export default function TryPage() {
           <DocSection id="live" eyebrow="Reality check" title="What counts as real">
             <Paragraph>
               Foresight does not send transactions. That is intentional. It is a pre-sign guardrail. The real part is the
-              live Pharos RPC simulation and the deployed Pharos Atlantic testnet contracts used for proof.
+              live RPC simulation. Pharos Mainnet is the default user network. Pharos Atlantic provides the deployed honeypot proof contracts; Base, Ethereum, Polygon, BSC, Arbitrum, Optimism, and custom RPCs support bonus generic pre-sign checks.
             </Paragraph>
             <div className="grid gap-px overflow-hidden rounded-[14px] border border-border bg-border">
               {[
@@ -421,11 +421,11 @@ export default function TryPage() {
             <CommandBlock label="install" command={installCommand} />
           </DocSection>
 
-          <DocSection id="cli" eyebrow="CLI" title="Run live Pharos checks from terminal">
+          <DocSection id="cli" eyebrow="CLI" title="Run live EVM checks from terminal">
             <CommandBlock
               label="safe native transfer"
               command={safeTransferCommand}
-              output={["Expected: SIGN", "Risk: 0 / SAFE", "Proof: live Pharos RPC simulation completed"]}
+              output={["Expected: SIGN", "Risk: 0 / SAFE", "Proof: live RPC simulation completed"]}
             />
             <CommandBlock
               label="honeypot refusal"
@@ -454,10 +454,10 @@ export default function TryPage() {
 
           <DocSection id="transactions" eyebrow="Real transactions" title="Check any wallet or dapp intent">
             <Paragraph>
-              For a real dapp swap, approval, contract write, or native transfer, copy the wallet preview fields before
+              For a real dapp swap, approval, contract write, or native transfer on Pharos Mainnet, Pharos Atlantic, or another EVM chain, copy the wallet preview fields before
               signing. Foresight needs the transaction&apos;s <span className="text-text1">from</span>,{" "}
               <span className="text-text1">to</span>, <span className="text-text1">data</span>, and{" "}
-              <span className="text-text1">value</span>.
+              <span className="text-text1">value</span>, and optional <span className="text-text1">chain</span>.
             </Paragraph>
             <CommandBlock label="generic live check" command={genericCheckCommand} />
           </DocSection>
@@ -465,8 +465,8 @@ export default function TryPage() {
           <DocSection id="tools" eyebrow="Reference" title="MCP tools exposed">
             <div className="grid gap-3">
               {[
-                ["foresight_assess_risk", "Short verdict and risk findings. Best default before signing."],
-                ["foresight_simulate", "Full report with decoded intent, findings, telemetry, and explanation."],
+                ["foresight_assess_risk", "Short verdict and risk findings. Best default before signing. Accepts optional chain, chainId, and rpcUrl."],
+                ["foresight_simulate", "Full report with decoded intent, findings, telemetry, and explanation. Accepts optional chain, chainId, and rpcUrl."],
                 ["foresight_explain", "Plain-English calldata explanation when ABI support is available."],
                 ["foresight_diagnose", "Failed transaction autopsy by transaction hash."],
               ].map(([name, text]) => (

@@ -1,8 +1,8 @@
 # Foresight
 
-Pre-flight transaction safety for autonomous Pharos agents.
+Pharos-first, multi-chain EVM transaction safety for autonomous agents.
 
-Foresight is a Pharos Agent Center skill that checks a proposed write transaction before an AI agent signs it. It runs live RPC pre-flight simulation, decodes calldata and simulated reverts, performs deterministic risk scoring, and returns a simple verdict:
+Foresight is a Pharos Agent Center skill that checks a proposed write transaction before an AI agent signs it. Pharos Mainnet is the default network, Pharos Atlantic testnet is kept for deployed proof demos, and the live pre-flight checker also supports Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, and custom EVM RPC URLs. It runs live RPC simulation, decodes calldata and simulated reverts, performs deterministic risk scoring, and returns a simple verdict:
 
 ```text
 SIGN / REVIEW / DO_NOT_SIGN
@@ -12,10 +12,14 @@ The project ships as a terminal CLI, MCP skill server, HTTP API, and web dashboa
 
 ## Status
 
-- Network: Pharos Atlantic Testnet
-- Chain ID: `688689`
-- RPC: `https://atlantic.dplabs-internal.com`
-- Explorer: `https://atlantic.pharosscan.xyz/`
+- Default network: Pharos Mainnet
+- Default chain ID: `1672`
+- Default currency: `PROS`
+- Default RPC: `https://rpc.pharos.xyz`
+- Mainnet explorer: `https://pharosscan.xyz/`
+- Proof/demo network: Pharos Atlantic Testnet, chain ID `688689`
+- Bonus live check networks: Ethereum, Base, Polygon, BSC, Arbitrum, Optimism
+- Advanced mode: pass a custom EVM `--rpc-url` and optional `--chain-id`
 
 For testing, Foresight already has real deployed demo contracts on Pharos Atlantic and a live honeypot round-trip probe:
 
@@ -53,7 +57,7 @@ Proposed tx -> simulate -> decode -> score risk -> return verdict -> sign or ref
 
 The live skill path is real:
 
-- connects to Pharos Atlantic RPC
+- connects to the selected live RPC, with Pharos Atlantic as the default
 - reads live chain ID and block number
 - checks live bytecode at the target address
 - runs `eth_call` before signing
@@ -61,7 +65,7 @@ The live skill path is real:
 - decodes calldata with local ABI knowledge
 - decodes simulated revert data and custom errors
 - runs deterministic risk rules
-- runs a live round-trip honeypot exit probe using deployed contracts
+- runs a live round-trip honeypot exit probe on the deployed Pharos demo contracts
 - returns an agent-readable verdict and explanation
 
 The replay path is intentionally separate:
@@ -224,7 +228,7 @@ Expected result:
 
 ```text
 FORESIGHT SKILL
-Mode: live Pharos RPC
+Mode: live selected RPC
 Target: SimpleRouter.swap
 
 VERDICT  DO_NOT_SIGN
@@ -239,7 +243,7 @@ ROUND-TRIP EXIT PROOF
 Check any real proposed transaction:
 
 ```bash
-corepack pnpm --filter @foresight/cli dev -- skill check --from <agent> --to <contract> --data <calldata> --value <wei> --mode live
+corepack pnpm --filter @foresight/cli dev -- skill check --from <agent> --to <contract> --data <calldata> --value <wei> --chain pharos --mode live
 ```
 
 Get the full JSON report:
@@ -529,7 +533,7 @@ Skill name: Foresight
 
 Short description:
 Foresight is a pre-flight transaction safety skill for autonomous Pharos agents.
-Before an agent signs a write transaction, it runs live RPC simulation, decodes
+Before an agent signs a write transaction, it runs live RPC simulation on Pharos or a supported EVM chain, decodes
 calldata and simulated reverts, checks deployed contract bytecode, runs a live
 honeypot round-trip probe, scores risk, and returns SIGN / REVIEW / DO_NOT_SIGN.
 
@@ -551,7 +555,7 @@ CLI, MCP server, HTTP API, markdown skill bundle. Compatible with agent workflow
 such as Codex, Claude Code, OpenClaw, and other MCP-capable tools.
 
 Network:
-Pharos Atlantic Testnet, chainId 688689.
+Default network: Pharos Mainnet, chainId 1672. Pharos Atlantic testnet remains the proof/demo network, chainId 688689. Supported bonus pre-sign check networks also include Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, and custom EVM RPC URLs.
 
 Notes:
 The CLI/MCP/API path is live RPC-backed. Dashboard replay fixtures are included

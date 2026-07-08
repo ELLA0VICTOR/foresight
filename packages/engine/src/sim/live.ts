@@ -12,13 +12,14 @@ import type {
   EventSummary,
   Finding,
   Hex,
+  NetworkConfig,
   RoundTripResult,
   SimReport,
   StateChange,
   TelemetryEvent,
   TxRequest,
 } from "../types.js";
-import { DEFAULT_FORK_BLOCK, demoAddresses, labelFor, networkConfig } from "../config.js";
+import { DEFAULT_FORK_BLOCK, demoAddresses, isPharosTestnet, labelFor, networkConfig } from "../config.js";
 import { erc20Abi, honeypotAbi, resolveAbi, roundTripProbeAbi, simpleRouterAbi, symbolFor } from "../decoder/abi.js";
 import { decodeCalldata } from "../decoder/calldata.js";
 import { callNode } from "../decoder/calltree.js";
@@ -72,7 +73,7 @@ function formatToken(token: Address | "native", raw: string): string {
   return amount.replace(/\.0+$/, "");
 }
 
-function makePredictedDeltas(request: TxRequest): BalanceDelta[] {
+function makePredictedDeltas(request: TxRequest, network: NetworkConfig): BalanceDelta[] {
   const decoded = decodeCalldata({ to: request.to, data: request.data });
   const value = asValue(request.value);
   const deltas: BalanceDelta[] = [];
@@ -80,7 +81,7 @@ function makePredictedDeltas(request: TxRequest): BalanceDelta[] {
   if (value > 0n) {
     deltas.push({
       token: "native",
-      symbol: networkConfig.nativeCurrency,
+      symbol: network.nativeCurrency,
       decimals: 18,
       before: "live",
       after: "simulated",
@@ -199,7 +200,7 @@ function makeCodeFinding(to: Address, data: Hex, hasCode: boolean): Finding[] {
       severity: "CRITICAL",
       title: "Target has no contract code",
       detail:
-        "The destination address has no bytecode on the live Pharos network. A write call to this target is almost certainly malformed or unsafe.",
+        "The destination address has no bytecode on the selected live network. A write call to this target is almost certainly malformed or unsafe.",
       evidence: [`to: ${to}`],
     },
   ];
@@ -240,6 +241,7 @@ function makeLiveInfoFindings(input: {
   chainId: number;
   gasUsed: string;
   success: boolean;
+  networkName: string;
 }): Finding[] {
   return [
     {
@@ -247,8 +249,8 @@ function makeLiveInfoFindings(input: {
       severity: "INFO",
       title: "Live RPC pre-flight completed",
       detail: input.success
-        ? "The transaction completed under live Pharos eth_call simulation."
-        : "The transaction was checked against the live Pharos RPC and returned a simulated failure.",
+        ? `The transaction completed under live ${input.networkName} eth_call simulation.`
+        : `The transaction was checked against live ${input.networkName} RPC and returned a simulated failure.`,
       evidence: [
         `chainId: ${input.chainId}`,
         `block: ${input.blockNumber.toString()}`,
@@ -272,13 +274,14 @@ function amountOutForProbe(request: TxRequest, decoded: ReturnType<typeof decode
 
 async function probeLiveRoundTrip(input: {
   client: ReturnType<typeof createForkPublicClient>;
+  network: NetworkConfig;
   request: TxRequest;
   decoded: ReturnType<typeof decodeCalldata>;
   success: boolean;
   telemetry: ReturnType<typeof makeTelemetry>;
   sink: LiveTelemetrySink | undefined;
 }): Promise<RoundTripResult | undefined> {
-  if (!input.success || input.decoded.functionName !== "swap") return undefined;
+  if (!isPharosTestnet(input.network) || !input.success || input.decoded.functionName !== "swap") return undefined;
 
   const tokenOut = input.decoded.args.tokenOut as Address | undefined;
   if (!tokenOut) return undefined;
@@ -346,13 +349,14 @@ function nativeValueAtRiskPct(value: bigint, nativeBalance: bigint): number {
 
 export async function simulateLive(
   request: TxRequest,
-  options: { onTelemetry?: LiveTelemetrySink } = {},
+  options: { onTelemetry?: LiveTelemetrySink; network?: NetworkConfig } = {},
 ): Promise<SimReport> {
   const telemetry = makeTelemetry();
   const decoded = decodeCalldata({ to: request.to, data: request.data });
   const resolved = resolveAbi(request.to);
   const label = labelFor(request.to);
-  const client = createForkPublicClient(networkConfig);
+  const selectedNetwork = options.network ?? networkConfig;
+  const client = createForkPublicClient(selectedNetwork);
   const value = asValue(request.value);
 
   telemetry.push("INTERCEPT", "info", "transaction intercepted before signing", options.onTelemetry);
@@ -369,7 +373,7 @@ export async function simulateLive(
   telemetry.push(
     "SIMULATING",
     "info",
-    `connected to ${networkConfig.name} at block ${blockNumber.toString()}`,
+    `connected to ${selectedNetwork.name} at block ${blockNumber.toString()}`,
     options.onTelemetry,
   );
   telemetry.push("SIMULATING", "info", "decoded calldata with local ABI set", options.onTelemetry);
@@ -416,9 +420,10 @@ export async function simulateLive(
 
   const stateChanges: StateChange[] = [];
   const events: EventSummary[] = [];
-  const balanceDeltas = makePredictedDeltas(request);
+  const balanceDeltas = makePredictedDeltas(request, selectedNetwork);
   const roundTrip = await probeLiveRoundTrip({
     client,
+    network: selectedNetwork,
     request,
     decoded,
     success,
@@ -444,6 +449,7 @@ export async function simulateLive(
       chainId,
       gasUsed,
       success,
+      networkName: selectedNetwork.name,
     }),
   ];
   const score = scoreFindings(findings);
@@ -463,7 +469,7 @@ export async function simulateLive(
   return {
     id: `live-${Date.now().toString(36)}`,
     tx: request,
-    network: { ...networkConfig, forkBlock },
+    network: { ...selectedNetwork, chainId, forkBlock },
     forkBlock: forkBlock || DEFAULT_FORK_BLOCK,
     success,
     decoded,

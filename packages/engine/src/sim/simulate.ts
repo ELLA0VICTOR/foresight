@@ -6,6 +6,7 @@ import type {
   EventSummary,
   Finding,
   Hex,
+  NetworkConfig,
   SimReport,
   StateChange,
   TelemetryEvent,
@@ -27,6 +28,7 @@ export interface SimulateOptions {
   onTelemetry?: TelemetrySink;
   mode?: SimulateMode;
   allowFixtureFallback?: boolean;
+  network?: NetworkConfig;
 }
 
 function emitAll(sink: TelemetrySink | undefined, events: TelemetryEvent[]): void {

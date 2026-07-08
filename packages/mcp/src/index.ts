@@ -23,7 +23,7 @@ function structured(data: unknown): Record<string, unknown> {
 
 server.tool(
   "foresight_simulate",
-  "Simulate a Pharos transaction before signing. ALWAYS call this before signing a write transaction.",
+  "Simulate a Pharos-first EVM transaction before signing. Supports pharos mainnet by default, pharos-testnet/atlantic for proof demos, ethereum, base, polygon, bsc, arbitrum, optimism, or a custom rpcUrl. ALWAYS call this before signing a write transaction.",
   txInputSchema,
   async (args) => {
     const result = await runSimulate(args);
@@ -36,7 +36,7 @@ server.tool(
 
 server.tool(
   "foresight_assess_risk",
-  "Return only the Foresight verdict and risk findings for a Pharos transaction.",
+  "Return only the Foresight verdict and risk findings for a Pharos-first EVM transaction.",
   txInputSchema,
   async (args) => {
     const result = await runAssessRisk(args);

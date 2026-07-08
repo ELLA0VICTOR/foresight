@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter } from "express";
-import { simulate, type Address, type Hex } from "@foresight/engine";
+import { resolveNetworkConfig, simulate, type Address, type Hex } from "@foresight/engine";
 import { z } from "zod";
 import { openSse } from "../sse.js";
 
@@ -8,6 +8,9 @@ const TxSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   data: z.string().regex(/^0x[a-fA-F0-9]*$/),
   value: z.string().optional(),
+  chain: z.string().optional(),
+  chainId: z.coerce.number().optional(),
+  rpcUrl: z.string().url().optional(),
 });
 
 export const simulateRouter: ExpressRouter = Router();
@@ -20,6 +23,8 @@ simulateRouter.post("/", async (req, res, next) => {
       to: body.to as Address,
       data: body.data as Hex,
       value: body.value ?? "0",
+    }, {
+      network: resolveNetworkConfig({ chain: body.chain, chainId: body.chainId, rpcUrl: body.rpcUrl }),
     });
     res.json(report);
   } catch (error) {
@@ -36,6 +41,9 @@ simulateRouter.get("/stream", async (req, res, next) => {
       to: req.query.to,
       data: req.query.data,
       value: req.query.value,
+      chain: req.query.chain,
+      chainId: req.query.chainId,
+      rpcUrl: req.query.rpcUrl,
     });
 
     const report = await simulate(
@@ -46,6 +54,7 @@ simulateRouter.get("/stream", async (req, res, next) => {
         value: body.value ?? "0",
       },
       {
+        network: resolveNetworkConfig({ chain: body.chain, chainId: body.chainId, rpcUrl: body.rpcUrl }),
         onTelemetry(event) {
           sse.send("telemetry", event);
         },

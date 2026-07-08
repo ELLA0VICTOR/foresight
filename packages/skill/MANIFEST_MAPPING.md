@@ -1,4 +1,4 @@
-﻿# Manifest Mapping
+# Manifest Mapping
 
 The official Pharos Skill Engine v0.1.0 package downloaded during research uses a
 markdown skill format:
@@ -16,18 +16,18 @@ ships `SKILL.md` as the primary Pharos-compatible skill file and includes
 | Official `SKILL.md` field | Foresight value |
 | --- | --- |
 | `name` | `foresight` |
-| `description` | Safety pre-flight skill for Pharos write transactions |
+| `description` | Pharos-first EVM pre-flight skill for write transactions |
 | `version` | `1.0.0` |
 | `requires.anyBins` | `node`, `pnpm` |
 
 ## Network Mapping
 
-The official Skill Engine defaults to `atlantic-testnet`:
+Foresight defaults to Pharos Mainnet for normal pre-sign checks:
 
-- chain ID `688689`
-- RPC `https://atlantic.dplabs-internal.com`
-- explorer `https://atlantic.pharosscan.xyz/`
-- explorer API `https://api.socialscan.io/pharos-atlantic-testnet`
+- default chain ID `1672`
+- default RPC `https://rpc.pharos.xyz`
+- explorer `https://pharosscan.xyz/`
+- proof/demo network `pharos-testnet` / `atlantic`, chain ID `688689`
 
 ## Tool Mapping
 
@@ -41,3 +41,8 @@ The official Skill Engine defaults to `atlantic-testnet`:
 If a future Pharos Agent Center release introduces a stricter manifest schema,
 `manifest.json` can be adapted without changing the engine. The MCP server and HTTP
 server both call the same pure TypeScript engine functions.
+
+
+## Multi-chain note
+
+Pharos Mainnet is the default user network. Pharos Atlantic remains the official proof network for deployed demo contracts. Generic pre-sign checks also accept `chain`, `chainId`, and `rpcUrl` for ethereum, base, polygon, bsc, arbitrum, optimism, or custom EVM RPCs.

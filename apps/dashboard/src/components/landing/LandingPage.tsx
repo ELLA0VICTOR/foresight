@@ -316,10 +316,10 @@ export function LandingPage() {
         <h1 className="mx-auto max-w-[920px] text-balance text-center font-display text-3xl font-light leading-9 tracking-[-0.05rem] text-text1 sm:text-[2.25rem] sm:leading-10">
           Pre-flight security for autonomous agents.
           <br />
-          Safe Pharos transactions before signing.
+          Check Pharos Mainnet transactions before signing.
         </h1>
         <p className="mx-auto mt-5 max-w-[860px] text-balance text-center font-sans text-lg font-light leading-[1.375rem] tracking-[-0.025em] text-text2 sm:text-[1.2rem] sm:leading-[1.55rem]">
-          Foresight simulates proposed onchain actions, decodes balance and state changes, and returns a plain verdict in seconds
+          Foresight simulates proposed onchain actions on Pharos Mainnet, Atlantic testnet, or supported EVM networks, decodes risk, and returns a plain verdict in seconds
           <span className="relative mx-1 inline-block select-none text-text3">
             after losses
             <span className="pointer-events-none absolute left-0 top-1/2 h-px w-full -rotate-6 bg-red" />

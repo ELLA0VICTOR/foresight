@@ -9,6 +9,8 @@ export type {
   Finding,
   Hex,
   NetworkConfig,
+  NetworkKey,
+  NetworkSelection,
   RiskBand,
   RoundTripResult,
   ScenarioScript,
@@ -22,7 +24,7 @@ export type {
   VerdictDecision,
 } from "./types.js";
 
-export { demoAddresses, networkConfig } from "./config.js";
+export { demoAddresses, isPharosNetwork, isPharosTestnet, networkConfig, pharosMainnetConfig, resolveNetworkConfig, supportedNetworks } from "./config.js";
 export { explainCalldata } from "./decoder/calldata.js";
 export { renderDiagnosisForAgent, renderReportForAgent } from "./explain/agentText.js";
 export { diagnose, demoFailedTxHash } from "./diagnose/diagnose.js";

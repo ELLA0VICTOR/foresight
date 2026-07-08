@@ -1,14 +1,14 @@
 ---
 name: foresight
 description: >
-  REQUIRED before an agent signs Pharos write transactions. Foresight runs live RPC pre-flight checks,
+  REQUIRED before an agent signs Pharos or EVM write transactions. Foresight runs live RPC pre-flight checks,
   decodes calldata and simulated reverts, scores deterministic risk, and returns SIGN / REVIEW /
   DO_NOT_SIGN. Use it before approvals, value transfers, swaps, unknown contract calls, and when
-  diagnosing failed Pharos transactions.
+  diagnosing failed Pharos transactions. Pharos Mainnet is the default network; Pharos Atlantic testnet is used for proof demos; ethereum, base, polygon, bsc, arbitrum, optimism, and custom RPC URLs are supported as bonus EVM checks.
 version: 1.0.0
 category: security
-network: atlantic-testnet
-chainId: 688689
+network: pharos-mainnet-first-evm
+chainId: 1672
 requires:
   anyBins:
   - node
@@ -17,10 +17,7 @@ requires:
 
 # Foresight
 
-Foresight is a pre-flight safety layer for autonomous agents on Pharos. Before you
-sign any write transaction, Foresight checks it against the configured live Pharos RPC,
-simulates the call where the network allows it, decodes calldata and reverts, applies
-risk rules, and tells you whether the agent should sign, review, or refuse.
+Foresight is a Pharos-first, multi-chain EVM pre-flight safety layer for autonomous agents. Before an agent signs any write transaction, Foresight checks it against the selected live RPC, simulates the call where the network allows it, decodes calldata and reverts, applies risk rules, and tells the agent whether to sign, review, or refuse.
 
 ## When to use this skill
 
@@ -31,9 +28,9 @@ risk rules, and tells you whether the agent should sign, review, or refuse.
 
 ## Tools
 
-- `foresight_simulate(from, to, data, value?)` returns verdict, risk score, balance
+- `foresight_simulate(from, to, data, value?, chain?, chainId?, rpcUrl?)` returns verdict, risk score, balance
   and state changes, events, honeypot evidence, and agent text.
-- `foresight_assess_risk(from, to, data, value?)` returns verdict and findings only.
+- `foresight_assess_risk(from, to, data, value?, chain?, chainId?, rpcUrl?)` returns verdict and findings only.
 - `foresight_explain(to, data)` returns a plain-English calldata decode.
 - `foresight_diagnose(txHash)` returns the root cause of a failed transaction and a
   suggested fix.
@@ -52,7 +49,7 @@ From the repository root:
 pnpm install
 pnpm --filter @foresight/cli build
 node packages/cli/dist/index.js health
-node packages/cli/dist/index.js assess-risk --scenario happy-path --mode live
+node packages/cli/dist/index.js assess-risk --from <wallet> --to <target> --data <calldata> --value 0 --chain pharos --mode live
 ```
 
 Use fixture mode only for deterministic demo recordings and tests.
@@ -74,8 +71,8 @@ node packages/mcp/dist/index.js
 
 ## Example
 
-User: "Buy 1 PHRS of $MOON."
+User: "Check this Pharos Mainnet transaction before signing."
 
-1. Construct the buy transaction.
-2. Call `foresight_simulate`.
-3. If `DECISION = DO_NOT_SIGN`, refuse and show the honeypot evidence.
+1. Collect `from`, `to`, `data`, `value`, and the target `chain`.
+2. Call `foresight_simulate` or `foresight_assess_risk`.
+3. If `DECISION = DO_NOT_SIGN`, refuse and explain the top evidence.

@@ -24,6 +24,9 @@ import {
   happyPathTx,
   honeypotTx,
   networkConfig,
+  pharosMainnetConfig,
+  resolveNetworkConfig,
+  supportedNetworks,
   renderDiagnosisForAgent,
   renderReportForAgent,
   simulate,
@@ -119,11 +122,11 @@ Foresight CLI
 Usage:
   foresight skill install
   foresight skill demo [happy-path|honeypot|approval] [--live|--fixture] [--json]
-  foresight skill check --from 0x... --to 0x... --data 0x... [--value wei] [--mode live|fixture] [--json]
+  foresight skill check --from 0x... --to 0x... --data 0x... [--value wei] [--chain pharos|pharos-testnet|base|ethereum|polygon|bsc|arbitrum|optimism] [--rpc-url url] [--mode live|fixture] [--json]
   foresight skill diagnose --tx 0x... [--json]
   foresight simulate --from 0x... --to 0x... --data 0x... [--value wei] [--mode live|fixture] [--json]
   foresight simulate --scenario honeypot [--mode fixture|live] [--json]
-  foresight assess-risk --from 0x... --to 0x... --data 0x... [--value wei] [--mode live|fixture] [--json]
+  foresight assess-risk --from 0x... --to 0x... --data 0x... [--value wei] [--chain pharos|pharos-testnet|base|ethereum|polygon|bsc|arbitrum|optimism] [--rpc-url url] [--mode live|fixture] [--json]
   foresight explain --to 0x... --data 0x... [--json]
   foresight diagnose --tx 0x... [--json]
   foresight demo-tx --scenario happy-path|honeypot|approval|autopsy [--json]
@@ -134,10 +137,10 @@ Usage:
 Examples:
   foresight skill install
   foresight skill demo honeypot --live
-  foresight skill check --from 0xabc... --to 0xdef... --data 0x --mode live
+  foresight skill check --from 0xabc... --to 0xdef... --data 0x --chain pharos --mode live
   foresight demo-tx --scenario honeypot --json
   foresight simulate --scenario honeypot --mode fixture
-  foresight simulate --from 0xabc... --to 0xdef... --data 0x --mode live
+  foresight simulate --from 0xabc... --to 0xdef... --data 0x --chain pharos --mode live
   foresight deploy-demo --broadcast --write-env
 `;
 }
@@ -186,6 +189,15 @@ function required(flags: Flags, name: string): string {
     throw new Error(`Missing required --${name}`);
   }
   return value;
+}
+
+function parseNetwork(flags: Flags) {
+  const scenarioDefault = flag(flags, "scenario") ? "pharos-testnet" : undefined;
+  return resolveNetworkConfig({
+    chain: flag(flags, "chain") ?? scenarioDefault,
+    chainId: flag(flags, "chain-id") ? Number(flag(flags, "chain-id")) : undefined,
+    rpcUrl: flag(flags, "rpc-url"),
+  });
 }
 
 function parseMode(flags: Flags): SimMode | undefined {
@@ -245,7 +257,9 @@ function printTx(tx: TxRequest, json: boolean) {
 async function runSimulate(flags: Flags, assessOnly = false) {
   const tx = txFromFlags(flags);
   const mode = parseMode(flags);
-  const options: { mode?: SimMode; allowFixtureFallback?: boolean } = {};
+  const options: { mode?: SimMode; allowFixtureFallback?: boolean; network?: ReturnType<typeof resolveNetworkConfig> } = {
+    network: parseNetwork(flags),
+  };
 
   if (mode) options.mode = mode;
   if (has(flags, "allow-fixture-fallback")) options.allowFixtureFallback = true;
@@ -318,10 +332,13 @@ function runDemoTx(flags: Flags) {
 
 function runHealth(flags: Flags) {
   const payload = {
-    network: networkConfig.name,
-    chainId: networkConfig.chainId,
-    rpcUrl: networkConfig.rpcUrl,
+    network: pharosMainnetConfig.name,
+    chainId: pharosMainnetConfig.chainId,
+    rpcUrl: pharosMainnetConfig.rpcUrl,
+    proofNetwork: networkConfig.name,
+    proofChainId: networkConfig.chainId,
     mode: process.env.FORESIGHT_SIM_MODE ?? "live",
+    supportedChains: Object.keys(supportedNetworks),
   };
 
   if (has(flags, "json")) {
@@ -333,6 +350,8 @@ function runHealth(flags: Flags) {
   console.log(`chainId: ${payload.chainId}`);
   console.log(`rpc: ${payload.rpcUrl}`);
   console.log(`default simulation mode: ${payload.mode}`);
+  console.log(`proof network: ${payload.proofNetwork} (${payload.proofChainId})`);
+  console.log(`supported chains: ${payload.supportedChains.join(", ")}`);
 }
 
 function skillUsage() {
@@ -342,14 +361,14 @@ Foresight Skill
 Usage:
   foresight skill install
   foresight skill demo [happy-path|honeypot|approval|autopsy] [--live|--fixture] [--json]
-  foresight skill check --from 0x... --to 0x... --data 0x... [--value wei] [--mode live|fixture] [--json]
+  foresight skill check --from 0x... --to 0x... --data 0x... [--value wei] [--chain pharos|pharos-testnet|base|ethereum|polygon|bsc|arbitrum|optimism] [--rpc-url url] [--mode live|fixture] [--json]
   foresight skill diagnose --tx 0x... [--json]
 
 Real live demo:
   foresight skill demo honeypot --live
 
 Agent rule:
-  Before any AI agent signs a Pharos write transaction, call foresight_assess_risk.
+  Before any AI agent signs a Pharos or EVM write transaction, call foresight_assess_risk.
   Sign only when the verdict is SIGN.
 `;
 }
@@ -402,7 +421,7 @@ function printSkillReport(report: SimReport, input: { mode: SimMode; label: stri
 
   printSkillBanner();
   statusLine("Skill loaded", input.label);
-  statusLine("Mode", `${input.mode} Pharos RPC`, input.mode === "live" ? "green" : "amber");
+  statusLine("Mode", `${input.mode} RPC`, input.mode === "live" ? "green" : "amber");
   statusLine("Network", `${report.network.name} / ${report.network.chainId}`);
   statusLine("Target", targetLabel);
   console.log("");
@@ -456,6 +475,7 @@ async function runSkillCheck(flags: Flags, label = "foresight_assess_risk") {
   const tx = txFromFlags(flags);
   const report = await simulate(tx, {
     mode,
+    network: parseNetwork(flags),
     allowFixtureFallback: has(flags, "allow-fixture-fallback"),
   });
 
@@ -495,8 +515,8 @@ function runSkillInstall(flags: Flags) {
       skill: "foresight",
       cli: "foresight skill check",
       mcp: "foresight_assess_risk",
-      network: networkConfig.name,
-      chainId: networkConfig.chainId,
+      network: pharosMainnetConfig.name,
+      chainId: pharosMainnetConfig.chainId,
     });
     return;
   }
@@ -505,7 +525,8 @@ function runSkillInstall(flags: Flags) {
   statusLine("Skill", "foresight");
   statusLine("CLI", "foresight skill check");
   statusLine("MCP tool", "foresight_assess_risk");
-  statusLine("Network", `${networkConfig.name} / ${networkConfig.chainId}`);
+  statusLine("Default network", `${pharosMainnetConfig.name} / ${pharosMainnetConfig.chainId}`);
+  statusLine("Proof network", `${networkConfig.name} / ${networkConfig.chainId}`);
   console.log("");
   console.log(paint("Local install", "bold"));
   console.log("  corepack pnpm install");
@@ -515,7 +536,7 @@ function runSkillInstall(flags: Flags) {
   console.log("  corepack pnpm --filter @foresight/cli dev -- skill demo honeypot --live");
   console.log("");
   console.log(paint("Agent guardrail", "bold"));
-  console.log("  Before signing any Pharos write transaction, call foresight_assess_risk.");
+  console.log("  Before signing any Pharos or EVM write transaction, call foresight_assess_risk.");
 }
 
 async function runSkill(argv: string[]) {

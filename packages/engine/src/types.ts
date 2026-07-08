@@ -1,4 +1,4 @@
-﻿export type Address = `0x${string}`;
+export type Address = `0x${string}`;
 export type Hex = `0x${string}`;
 
 export type SimPhase =
@@ -27,6 +27,24 @@ export interface TxRequest {
   value?: string;
 }
 
+export type NetworkKey =
+  | "pharos"
+  | "pharos-mainnet"
+  | "pharos-testnet"
+  | "atlantic"
+  | "ethereum"
+  | "base"
+  | "polygon"
+  | "bsc"
+  | "arbitrum"
+  | "optimism";
+
+export interface NetworkSelection {
+  chain?: NetworkKey | string | undefined;
+  chainId?: number | undefined;
+  rpcUrl?: string | undefined;
+}
+
 export interface NetworkConfig {
   name: string;
   chainId: number;
@@ -34,8 +52,8 @@ export interface NetworkConfig {
   wsUrl?: string;
   nativeCurrency: string;
   explorerUrl: string;
-  explorerApiUrl: string;
-  explorerVerifyApiUrl: string;
+  explorerApiUrl?: string;
+  explorerVerifyApiUrl?: string;
   forkBlock?: number;
 }
 
